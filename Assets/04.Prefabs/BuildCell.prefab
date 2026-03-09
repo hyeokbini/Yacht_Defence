@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 6617628413030909723}
   - component: {fileID: 1247121330757379609}
   - component: {fileID: 5219076348439196096}
-  - component: {fileID: 1740424857917750748}
   m_Layer: 0
   m_Name: BuildCell
   m_TagString: Untagged
@@ -140,21 +139,6 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
---- !u!114 &1740424857917750748
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 569998546477544803}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a1e25097b693e8479b93bfab8a0e159, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GridBuildCell
-  canBuild: 1
-  buildPoint: {fileID: 9203310094464431987}
-  placementManager: {fileID: 0}
 --- !u!1 &4695764510251093861
 GameObject:
   m_ObjectHideFlags: 0

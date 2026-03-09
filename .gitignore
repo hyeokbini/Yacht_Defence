@@ -100,3 +100,6 @@ InitTestScene*.unity*
 
 # Ignore VSCode folder
 .vscode/
+
+# Private Asset Folder
+Assets/00.Private
