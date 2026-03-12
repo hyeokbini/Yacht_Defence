@@ -19,11 +19,19 @@ public class TutorialUIController : MonoBehaviour
     [SerializeField] private GameObject promptPanel;
     [SerializeField] private GameObject tutorialPanel;
 
-    [Header("Tutorial Contents")]
+    [Header("Tutorial UI References")]
+    [SerializeField] private TMP_Text tutorialHeaderText;
     [SerializeField] private Image tutorialImage;
+    [SerializeField] private TMP_Text tutorialDescriptionText;
+
+    [Header("Tutorial Page Data")]
     [SerializeField] private TutorialPageData[] tutorialPages;
 
-    [Header("Buttons")]
+    [Header("Prompt Buttons")]
+    [SerializeField] private Button yesButton;
+    [SerializeField] private Button noButton;
+
+    [Header("Tutorial Buttons")]
     [SerializeField] private Button prevButton;
     [SerializeField] private Button nextButton;
     [SerializeField] private Button closeButton;
@@ -49,6 +57,12 @@ public class TutorialUIController : MonoBehaviour
     private void Awake()
     {
         HideAll();
+
+        if (yesButton != null)
+            yesButton.onClick.AddListener(OnClickYesButton);
+
+        if (noButton != null)
+            noButton.onClick.AddListener(OnClickNoButton);
 
         if (prevButton != null)
             prevButton.onClick.AddListener(OnClickPrevButton);
@@ -109,7 +123,7 @@ public class TutorialUIController : MonoBehaviour
             tutorialPanel.SetActive(false);
     }
 
-    public void OnClickYesButton()
+    private void OnClickYesButton()
     {
         if (promptPanel != null)
             promptPanel.SetActive(false);
@@ -117,7 +131,7 @@ public class TutorialUIController : MonoBehaviour
         onClickYes?.Invoke();
     }
 
-    public void OnClickNoButton()
+    private void OnClickNoButton()
     {
         HideAll();
         onClickNo?.Invoke();
@@ -164,19 +178,43 @@ public class TutorialUIController : MonoBehaviour
     {
         if (tutorialPages == null || tutorialPages.Length == 0)
         {
+            ClearTutorialPage();
             UpdatePageIndicator();
             UpdateNextButtonText();
             return;
         }
 
+        TutorialPageData currentTutorial = tutorialPages[currentPageIndex];
+
+        if (tutorialHeaderText != null)
+            tutorialHeaderText.text = currentTutorial.header;
+
         if (tutorialImage != null)
-            tutorialImage.sprite = tutorialPages[currentPageIndex].image;
+            tutorialImage.sprite = currentTutorial.image;
+
+        if (tutorialDescriptionText != null)
+            tutorialDescriptionText.text = currentTutorial.description;
 
         if (prevButton != null)
             prevButton.interactable = currentPageIndex > 0;
 
         UpdatePageIndicator();
         UpdateNextButtonText();
+    }
+
+    private void ClearTutorialPage()
+    {
+        if (tutorialHeaderText != null)
+            tutorialHeaderText.text = string.Empty;
+
+        if (tutorialImage != null)
+            tutorialImage.sprite = null;
+
+        if (tutorialDescriptionText != null)
+            tutorialDescriptionText.text = string.Empty;
+
+        if (prevButton != null)
+            prevButton.interactable = false;
     }
 
     private void UpdatePageIndicator()

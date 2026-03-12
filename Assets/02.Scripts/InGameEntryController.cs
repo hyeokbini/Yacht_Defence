@@ -22,6 +22,29 @@ public class InGameEntryController : MonoBehaviour
         );
     }
 
+#if UNITY_EDITOR
+    private void Update()
+    {
+        // 디버깅용: 튜토리얼 시작 강제 테스트
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            Debug.Log("튜토리얼 시작 테스트");
+
+            InGameFlowManager.Instance.EnterPhase(InGamePhase.Tutorial);
+            tutorialUIController.ShowTutorialPages(HandleTutorialFinished);
+        }
+
+        // 디버깅용: 최초 진입 기록 초기화
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Debug.Log("플레이어프렙 초기화");
+
+            PlayerPrefs.DeleteKey(HasEnteredGameSceneKey);
+            PlayerPrefs.Save();
+        }
+    }
+#endif
+
     private void HandleTutorialYes()
     {
         MarkAsEntered();
