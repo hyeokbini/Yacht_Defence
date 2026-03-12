@@ -34,15 +34,16 @@ public class TutorialUIController : MonoBehaviour
     [Header("Tutorial Buttons")]
     [SerializeField] private Button prevButton;
     [SerializeField] private Button nextButton;
+    [SerializeField] private Button startButton;
     [SerializeField] private Button closeButton;
 
     [Header("Texts")]
     [SerializeField] private TMP_Text pageIndicatorText;
     [SerializeField] private TMP_Text nextButtonText;
 
-    [Header("Button Labels")]
-    [SerializeField] private string nextLabel = "다음";
-    [SerializeField] private string startLabel = "시작";
+    //[Header("Button Labels")]
+    //[SerializeField] private 
+    //[SerializeField] private string startLabel = "시작";
 
     [Header("Options")]
     [SerializeField] private bool allowEscSkip = true;
@@ -69,6 +70,9 @@ public class TutorialUIController : MonoBehaviour
 
         if (nextButton != null)
             nextButton.onClick.AddListener(OnClickNextButton);
+
+        if (startButton != null)
+            startButton.onClick.AddListener(OnClickStartButton);
 
         if (closeButton != null)
             closeButton.onClick.AddListener(OnClickCloseButton);
@@ -111,6 +115,9 @@ public class TutorialUIController : MonoBehaviour
         if (tutorialPanel != null)
             tutorialPanel.SetActive(true);
 
+        if (startButton != null)
+            startButton.gameObject.SetActive(false);
+
         RefreshTutorialPage();
     }
 
@@ -150,6 +157,11 @@ public class TutorialUIController : MonoBehaviour
         RefreshTutorialPage();
     }
 
+    private void OnClickStartButton()
+    {
+        CloseTutorial();
+    }
+
     private void OnClickNextButton()
     {
         if (tutorialPages == null || tutorialPages.Length == 0)
@@ -180,7 +192,6 @@ public class TutorialUIController : MonoBehaviour
         {
             ClearTutorialPage();
             UpdatePageIndicator();
-            UpdateNextButtonText();
             return;
         }
 
@@ -198,8 +209,15 @@ public class TutorialUIController : MonoBehaviour
         if (prevButton != null)
             prevButton.interactable = currentPageIndex > 0;
 
+        bool isLastPage = currentPageIndex == tutorialPages.Length - 1;
+
+        if (nextButton != null)
+            nextButton.gameObject.SetActive(!isLastPage);
+
+        if (startButton != null)
+            startButton.gameObject.SetActive(isLastPage);
+
         UpdatePageIndicator();
-        UpdateNextButtonText();
     }
 
     private void ClearTutorialPage()
@@ -229,21 +247,6 @@ public class TutorialUIController : MonoBehaviour
         }
 
         pageIndicatorText.text = $"{currentPageIndex + 1} / {tutorialPages.Length}";
-    }
-
-    private void UpdateNextButtonText()
-    {
-        if (nextButtonText == null)
-            return;
-
-        if (tutorialPages == null || tutorialPages.Length == 0)
-        {
-            nextButtonText.text = startLabel;
-            return;
-        }
-
-        bool isLastPage = currentPageIndex == tutorialPages.Length - 1;
-        nextButtonText.text = isLastPage ? startLabel : nextLabel;
     }
 
     private void CloseTutorial()
