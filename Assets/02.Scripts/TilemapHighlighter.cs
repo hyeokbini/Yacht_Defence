@@ -1,8 +1,8 @@
-using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public class TilemapHighlighter : MonoBehaviour
+public class TilemapHighlighter : PhaseListener
 {
     [SerializeField] private Tilemap buildableTilemap;
     [SerializeField] private Tilemap fillHighlightTilemap;
@@ -21,23 +21,61 @@ public class TilemapHighlighter : MonoBehaviour
 
     private Vector3Int? currentCell;
     private bool? lastCanPlace;
+    private bool isBuildPhase = false;
 
     private void Awake()
     {
         mainCamera = Camera.main;
     }
 
-    private void Update()
+    protected override void HandlePhaseEntered(InGamePhase phase)
     {
-        UpdateHighlight();
+        if (phase == InGamePhase.BuildSelect)
+        {
+            isBuildPhase = true;
+            MouseInputHandler.Instance.OnMouseMove += HandleMouseMove;
+        }
     }
 
-    private void UpdateHighlight()
+    protected override void HandlePhaseExited(InGamePhase phase)
     {
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        if (phase == InGamePhase.BuildSelect)
+        {
+            isBuildPhase = false;
+            MouseInputHandler.Instance.OnMouseMove -= HandleMouseMove;
+            ClearCurrentHighlight();
+        }
+    }
+
+    /*protected override void OnEnable()
+    {
+        base.OnEnable();
+        MouseInputHandler.Instance.OnMouseMove += HandleMouseMove;
+    }
+
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        MouseInputHandler.Instance.OnMouseMove -= HandleMouseMove;
+    }*/
+
+
+
+    private void HandleMouseMove(Vector3 mouseScreenPos)
+    {
+        if (!isBuildPhase)
+            return;
+
+        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(mouseScreenPos);
         mouseWorldPos.z = 0f;
 
         Vector3Int cellPos = buildableTilemap.WorldToCell(mouseWorldPos);
+        UpdateHighlight(cellPos);
+    }
+
+    private void UpdateHighlight(Vector3Int cellPos)
+    {
+
         bool canPlace = placementManager.CanPlaceAt(cellPos);
 
         bool isSameCell = currentCell.HasValue && currentCell.Value == cellPos;
@@ -68,7 +106,7 @@ public class TilemapHighlighter : MonoBehaviour
 
     private void ClearCurrentHighlight()
     {
-        if (currentCell.HasValue == false)
+        if (!currentCell.HasValue)
         {
             return;
         }

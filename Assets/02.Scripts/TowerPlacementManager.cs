@@ -1,48 +1,63 @@
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-public class TowerPlacementManager : MonoBehaviour
+public class TowerPlacementManager : PhaseListener
 {
     private Camera mainCamera;
+
     [SerializeField] private Tilemap buildableTilemap;
     [SerializeField] private GameObject towerPrefab;
 
-    private readonly Dictionary<Vector3Int, Tower> placedTowers = new Dictionary<Vector3Int, Tower>();
+    private readonly Dictionary<Vector3Int, Tower> placedTowers = new();
+
+    private bool isBuildPhase = false;
 
     private void Awake()
     {
         mainCamera = Camera.main;
     }
 
-    private void Update()
+    protected override void HandlePhaseEntered(InGamePhase phase)
     {
-        if (Input.GetMouseButtonDown(0))
+        if (phase == InGamePhase.BuildSelect)
         {
-            // 추후 new input으로 교체하기.
-            TryPlaceTower();
+            isBuildPhase = true;
+            MouseInputHandler.Instance.OnMouseClick += HandleMouseClick;
         }
     }
 
-    private void TryPlaceTower()
+    protected override void HandlePhaseExited(InGamePhase phase)
     {
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        if (phase == InGamePhase.BuildSelect)
+        {
+            isBuildPhase = false;
+            MouseInputHandler.Instance.OnMouseClick -= HandleMouseClick;
+        }
+    }
+
+    private void HandleMouseClick(Vector3 mouseScreenPos)
+    {
+        if (!isBuildPhase) return;
+
+        // ← 여기서 드래그 중이면 클릭 무시
+        //if (MouseInputHandler.Instance.IsDragging)
+        //    return;
+
+        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(mouseScreenPos);
         mouseWorldPos.z = 0f;
 
         Vector3Int cellPos = buildableTilemap.WorldToCell(mouseWorldPos);
 
-        if (CanPlaceAt(cellPos) == false)
-        {
+        if (!CanPlaceAt(cellPos))
             return;
-        }
 
         PlaceTower(cellPos);
     }
 
     public bool CanPlaceAt(Vector3Int cellPos)
     {
-        if (buildableTilemap.HasTile(cellPos) == false)
+        if (!buildableTilemap.HasTile(cellPos))
         {
             return false;
         }
@@ -61,6 +76,7 @@ public class TowerPlacementManager : MonoBehaviour
         GameObject towerObject = Instantiate(towerPrefab, spawnWorldPos, Quaternion.identity);
 
         Tower tower = towerObject.GetComponent<Tower>();
+
         if (tower == null)
         {
             Destroy(towerObject);
@@ -75,7 +91,7 @@ public class TowerPlacementManager : MonoBehaviour
 
     public bool RemoveTower(Vector3Int cellPos)
     {
-        if (placedTowers.TryGetValue(cellPos, out Tower tower) == false)
+        if (!placedTowers.TryGetValue(cellPos, out Tower tower))
         {
             return false;
         }
@@ -93,9 +109,8 @@ public class TowerPlacementManager : MonoBehaviour
     public Tower GetTowerAt(Vector3Int cellPos)
     {
         if (placedTowers.TryGetValue(cellPos, out Tower tower))
-        {
             return tower;
-        }
+
         return null;
     }
 }
