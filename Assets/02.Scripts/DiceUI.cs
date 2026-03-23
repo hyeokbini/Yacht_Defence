@@ -1,62 +1,226 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections;
-using System; // Action 사용을 위해 추가
+using System;
+using DG.Tweening;
+using UnityEngine.EventSystems;
 
-public class DiceUI : MonoBehaviour
+public class DiceUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
-    public int currentDrawnValue { get; private set; }
+    public bool IsLocked { get; set; }
+    public int currentDrawnValue { get; set; } 
     private int remainingRerolls;
+    public int RemainingRerolls => remainingRerolls;
+
+    private bool isRolling;
+    public bool IsRolling 
+    { 
+        get => isRolling; 
+        set 
+        {
+            isRolling = value;
+            UpdateRerollTextVisibility(); 
+        }
+    } 
 
     [Header("UI References")]
     public TextMeshProUGUI valueText;
-    public Button rerollButton;
+    public TextMeshProUGUI remainRerollText; 
+    
+    [Header("Animation References")]
+    public RectTransform mover; 
+    public Transform originalParent { get; private set; }
 
-    public Action<DiceUI> OnRollCompleted; 
+    public Action<DiceUI, int> OnRerollRequested; 
+    public Action<DiceUI> OnHoverEntered; 
+    public Action<DiceUI> OnHoverExited;  
 
+    private Tween scaleTween;
+    private Tween colorTween;
+    private Tween textFadeTween; 
+
+    private float currentTargetScale = 1.0f;
+    private Color currentTargetColor = Color.white;
+    private Image moverBackgroundImage; 
+    
+    private bool isHovered = false; 
+
+    private String countOutText = "리롤 불가!";
+    private String canRollText = "남은 횟수: ";
+
+    private void Awake()
+    {
+        moverBackgroundImage = mover.GetComponent<Image>();
+        
+        if (remainRerollText != null)
+        {
+            Color c = remainRerollText.color;
+            c.a = 0f;
+            remainRerollText.color = c;
+            remainRerollText.gameObject.SetActive(true); 
+        }
+    }
+
+    #region 세팅 관련 함수
     public void Setup(int maxRerolls)
     {
         remainingRerolls = maxRerolls;
-        rerollButton.onClick.RemoveAllListeners();
-        rerollButton.onClick.AddListener(RequestReroll);
-        Roll(() => {
-            OnRollCompleted?.Invoke(this); 
-        });
-    }
-
-    public void Roll(Action onComplete = null)
-    {
-        StartCoroutine(RollRoutine(onComplete));
-    }
-
-    private IEnumerator RollRoutine(Action onComplete)
-    {
-        // 1. 애니메이션 시작 전: 조작 방지
-        rerollButton.interactable = false;
-        // TODO: 나중에 여기에 주사위 굴러가는 연출
+        originalParent = mover.parent;
+        isHovered = false; 
         
-        yield return null;
-
-        // 2. 값 결정 및 UI 갱신
-        currentDrawnValue = UnityEngine.Random.Range(1, 7);
-        valueText.text = currentDrawnValue.ToString();
-
-        // 3. 리롤 횟수에 따라 버튼 다시 활성화
-        rerollButton.interactable = (remainingRerolls > 0);
-
-        // 4. 콜백 실행
-        onComplete?.Invoke();
+        SetValueInstant(UnityEngine.Random.Range(1, 7));
     }
 
-    private void RequestReroll()
+    public void SetValueInstant(int val)
     {
-        if (remainingRerolls > 0)
+        currentDrawnValue = val;
+        valueText.text = currentDrawnValue.ToString();
+        UpdateInteraction();
+    }
+
+    public void SetRaycastTarget(bool isActive)
+    {
+        if (moverBackgroundImage != null)
         {
-            remainingRerolls--;
-            Roll(() => {
-                OnRollCompleted?.Invoke(this); 
-            });
+            moverBackgroundImage.raycastTarget = isActive;
         }
     }
+    #endregion
+
+    #region 마우스 감지 로직
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (IsRolling || IsLocked) return; 
+
+        isHovered = true;
+        UpdateRerollTextVisibility(); 
+
+        OnHoverEntered?.Invoke(this); 
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (IsRolling || IsLocked) return;
+
+        isHovered = false;
+        UpdateRerollTextVisibility(); 
+
+        OnHoverExited?.Invoke(this); 
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (remainingRerolls > 0 && !IsRolling && !IsLocked)
+        {
+            remainingRerolls--;
+            int newValue = UnityEngine.Random.Range(1, 7);
+            OnRerollRequested?.Invoke(this, newValue); 
+        }
+    }
+
+    public void CheckHoverStateAfterRolling()
+    {
+        Vector2 mousePos = Input.mousePosition;
+        RectTransform rectTransform = GetComponent<RectTransform>();
+        Camera cam = (rectTransform.root.GetComponent<Canvas>().renderMode == RenderMode.ScreenSpaceOverlay) ? null : Camera.main;
+
+        if (RectTransformUtility.RectangleContainsScreenPoint(rectTransform, mousePos, cam))
+        {
+            OnPointerEnter(null); 
+        }
+        else
+        {
+            if (isHovered) OnPointerExit(null);
+        }
+    }
+
+    #endregion
+
+    #region 애니메이션, 상태갱신 관련 함수
+    private void UpdateRerollTextVisibility()
+    {
+        if (remainRerollText == null) return;
+
+        textFadeTween?.Kill(); 
+
+        if (IsRolling)
+        {
+            textFadeTween = remainRerollText.DOFade(0f, 0.2f);
+            return;
+        }
+
+        if (remainingRerolls <= 0)
+        {
+            remainRerollText.text = countOutText;
+            Color redColor = Color.red;
+            redColor.a = remainRerollText.color.a; 
+            remainRerollText.color = redColor;     
+            textFadeTween = remainRerollText.DOFade(1f, 0.3f); 
+        }
+        else
+        {
+            remainRerollText.text = canRollText + remainingRerolls;
+            Color blackColor = Color.black;
+            blackColor.a = remainRerollText.color.a;
+            remainRerollText.color = blackColor;
+
+            float targetAlpha = isHovered ? 1f : 0f;
+            textFadeTween = remainRerollText.DOFade(targetAlpha, 0.3f); 
+        }
+    }
+
+    public void SetHoverVisuals(float targetScale, Color targetColor)
+    {
+        if (!Mathf.Approximately(currentTargetScale, targetScale))
+        {
+            currentTargetScale = targetScale;
+            scaleTween?.Kill();
+            scaleTween = mover.DOScale(targetScale, 0.3f).SetEase(Ease.OutQuad);
+        }
+
+        if (moverBackgroundImage != null && currentTargetColor != targetColor)
+        {
+            currentTargetColor = targetColor;
+            colorTween?.Kill();
+            colorTween = moverBackgroundImage.DOColor(targetColor, 0.3f); 
+        }
+    }
+
+    public void ResetVisualsImmediate()
+    {
+        scaleTween?.Kill();
+        colorTween?.Kill();
+        
+        currentTargetScale = 1.0f;
+        
+        currentTargetColor = (remainingRerolls <= 0 && !IsRolling) ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+        
+        mover.localScale = Vector3.one; 
+        if (moverBackgroundImage != null) moverBackgroundImage.color = currentTargetColor;
+        
+        if (remainingRerolls > 0 || IsRolling)
+        {
+            textFadeTween?.Kill(); 
+            if (remainRerollText != null)
+            {
+                Color c = remainRerollText.color;
+                c.a = 0f;
+                remainRerollText.color = c;
+            }
+            isHovered = false; 
+        }
+    }
+
+    public void AnimateToNewLayoutPosition(Vector3 oldWorldPos)
+    {
+        mover.position = oldWorldPos;
+        mover.DOLocalMove(Vector3.zero, 0.4f).SetEase(Ease.OutCubic);
+    }
+
+    public void UpdateInteraction() 
+    {
+        UpdateRerollTextVisibility(); 
+    }
+
+    #endregion
 }
