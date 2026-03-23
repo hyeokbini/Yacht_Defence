@@ -4737,7 +4737,7 @@ MonoBehaviour:
   borderHighlightTilemap: {fileID: 1275610693}
   placementManager: {fileID: 1330362485}
   fillTile: {fileID: 11400000, guid: 305732991a3bfbd47b763ba68fb41285, type: 2}
-  borderTile: {fileID: 11400000, guid: 9ec9784a207dd7441b74160839dae2e3, type: 2}
+  borderTile: {fileID: 11400000, guid: 6ef031d0b08642c468ae8773346ccb4d, type: 2}
   validFillColor: {r: 0, g: 1, b: 0, a: 0.25}
   invalidFillColor: {r: 1, g: 0, b: 0, a: 0.25}
   validBorderColor: {r: 0, g: 1, b: 0, a: 1}
